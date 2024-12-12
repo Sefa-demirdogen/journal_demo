@@ -1,0 +1,266 @@
+import 'package:flutter/material.dart';
+import 'package:xml/xml.dart';
+import 'package:flutter/services.dart';
+import 'package:path_drawing/path_drawing.dart';
+
+
+
+class MapScreenV2 extends StatefulWidget {
+  const MapScreenV2({super.key});
+
+  @override
+  State<MapScreenV2> createState() => _MapScreenV2State();
+}
+
+class _MapScreenV2State extends State<MapScreenV2> {
+  List<Country> countries = [];
+
+  @override
+  void initState() {
+    super.initState();
+    loadCountries().then((data) {
+      countries = data;
+      setState(() {});
+    });
+  }
+
+  loadCountries() async {
+    const path = 'assets/svgFiles/world.svg';
+    String content = await rootBundle.loadString(path);
+    final document = XmlDocument.parse(content);
+    final paths = document.findAllElements('path');
+    final countries = <Country>[];
+    for (var path in paths) {
+      final partId = path.getAttribute('id') ?? '';
+      if (partId.isEmpty) {
+        continue;
+      }
+      final partPath = path.getAttribute('d')?.toString() ?? '';
+      final partTitle = path.getAttribute('title')?.toString() ?? '';
+      countries.add(Country(id: partId, title: partTitle, path: partPath));
+    }
+    return countries;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Dünya Haritası')),
+      body: InteractiveViewer(
+        maxScale: 5,
+        minScale: 0.1,
+        boundaryMargin: const EdgeInsets.all(100),
+        child: Container(
+          width: MediaQuery.of(context).size.width,
+          height: MediaQuery.of(context).size.height,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              ...countries.map((country) {
+                return _getCountryImage(country);
+              })
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _getCountryImage(Country country) {
+    return ClipPath(
+      clipper: CountryClipper(svgPath: country.path),
+      child: GestureDetector(
+        onTap: () {
+          print(country.title);
+        },
+        child: Container(
+          width: double.infinity,
+          height: double.infinity,
+          color: Colors.grey,
+        ),
+      ),
+    );
+  }
+}
+
+class Country {
+  final String id;
+  final String path;
+  final String title;
+
+  Country({required this.id, required this.title, required this.path});
+}
+
+class CountryClipper extends CustomClipper<Path> {
+  final String svgPath;
+  CountryClipper({super.reclip, required this.svgPath});
+
+  @override
+  Path getClip(Size size) {
+    final path = parseSvgPathData(svgPath);
+    return path;
+  }
+
+  @override
+  bool shouldReclip(covariant CustomClipper<Path> oldClipper) {
+    return false;
+  }
+}
+
+/* aşağıdaki kod tüm haritayı içeriyor ve renk değiştirilebilir */
+/*
+import 'package:flutter/material.dart';
+import 'package:xml/xml.dart';
+import 'package:flutter/services.dart';
+import 'package:path_drawing/path_drawing.dart';
+
+class MapScreenV2 extends StatefulWidget {
+  const MapScreenV2({super.key});
+
+  @override
+  State<MapScreenV2> createState() => _MapScreenV2State();
+}
+
+class _MapScreenV2State extends State<MapScreenV2> {
+  List<Country> countries = [];
+  final TransformationController _transformationController =
+      TransformationController();
+  String? selectedCountry;
+
+  @override
+  void initState() {
+    super.initState();
+    loadCountries().then((data) {
+      countries = data;
+      setState(() {});
+    });
+
+    _transformationController.value = Matrix4.identity()
+      ..scale(0.8)
+      ..translate(-100.0, -50.0);
+  }
+
+  loadCountries() async {
+    const path = 'assets/svgFiles/world.svg';
+    String content = await rootBundle.loadString(path);
+    final document = XmlDocument.parse(content);
+    final paths = document.findAllElements('path');
+    final countries = <Country>[];
+    for (var path in paths) {
+      final partId = path.getAttribute('id') ?? '';
+      if (partId.isEmpty) {
+        continue;
+      }
+      final partPath = path.getAttribute('d')?.toString() ?? '';
+      final partTitle = path.getAttribute('title')?.toString() ?? '';
+      countries.add(Country(id: partId, title: partTitle, path: partPath));
+    }
+    return countries;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Dünya Haritası')),
+      body: Stack(
+        children: [
+          InteractiveViewer(
+            transformationController: _transformationController,
+            maxScale: 10,
+            minScale: 0.1,
+            boundaryMargin: const EdgeInsets.all(100),
+            child: Center(
+              child: FittedBox(
+                fit: BoxFit.contain,
+                child: SizedBox(
+                  width: 1009.6727,
+                  height: 665.96301,
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      ...countries.map((country) {
+                        return _getCountryImage(country);
+                      })
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+          if (selectedCountry != null)
+            Positioned(
+              bottom: 20,
+              left: 0,
+              right: 0,
+              child: Center(
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.7),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    selectedCountry!,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _getCountryImage(Country country) {
+    final isSelected = selectedCountry == country.title;
+
+    return ClipPath(
+      clipper: CountryClipper(svgPath: country.path),
+      child: GestureDetector(
+        onTap: () {
+          setState(() {
+            selectedCountry = country.title;
+          });
+          print(country.title);
+        },
+        child: Container(
+          width: double.infinity,
+          height: double.infinity,
+          color: isSelected ? Colors.blue : Colors.grey,
+        ),
+      ),
+    );
+  }
+}
+
+class Country {
+  final String id;
+  final String path;
+  final String title;
+
+  Country({required this.id, required this.title, required this.path});
+}
+
+class CountryClipper extends CustomClipper<Path> {
+  final String svgPath;
+  CountryClipper({super.reclip, required this.svgPath});
+
+  @override
+  Path getClip(Size size) {
+    final path = parseSvgPathData(svgPath);
+    return path;
+  }
+
+  @override
+  bool shouldReclip(covariant CustomClipper<Path> oldClipper) {
+    return false;
+  }
+}
+
+
+*/
