@@ -1,4 +1,5 @@
 # journal_demo
+<<<<<<< HEAD
 
 A new Flutter project.
 # Dünya Haritası Uygulaması
@@ -77,3 +78,6 @@ flutter run
 
 - [OpenWeather](https://openweathermap.org/) - Hava durumu verileri için
 - [REST Countries](https://restcountries.com/) - Ülke bilgileri için
+=======
+📱 Flutter ile geliştirilmiş interaktif dünya haritası uygulaması. Ülke bilgileri, hava durumu ve seyahat önerileri sunar.
+>>>>>>> 9b3b44d97f0fa583392f1da655e861eb11886113
