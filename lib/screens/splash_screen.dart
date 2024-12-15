@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'world_map_screen.dart';
+import 'world_map/world_map_screen.dart';
 
 class SplashScreen extends StatelessWidget {
   const SplashScreen({super.key});

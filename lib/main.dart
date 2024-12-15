@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'screens/splash_screen.dart';
+import 'screens/world_map/world_map_screen.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 void main() async {
