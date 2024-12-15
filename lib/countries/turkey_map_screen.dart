@@ -26,8 +26,8 @@ class _TurkeyMapScreenState extends State<TurkeyMapScreen> {
     });
 
     _transformationController.value = Matrix4.identity()
-      ..scale(0.8)
-      ..translate(-100.0, -50.0);
+      ..scale(1.2)
+      ..translate(20.0, 20.0);
   }
 
   loadCities() async {

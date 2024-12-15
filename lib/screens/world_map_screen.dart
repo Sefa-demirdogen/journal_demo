@@ -1,9 +1,13 @@
+// lib/screens/world_map_screen.dart
 import 'package:flutter/material.dart';
 import 'package:xml/xml.dart';
 import 'package:flutter/services.dart';
 import 'package:path_drawing/path_drawing.dart';
-import 'turkey_map_screen.dart';
+import 'splash_screen.dart';
+import 'notebook_page.dart';
+import '../constants/country_configs.dart';
 import 'country_details_screen.dart';
+import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 
 class WorldMapScreen extends StatefulWidget {
   const WorldMapScreen({super.key});
@@ -18,6 +22,8 @@ class _WorldMapScreenState extends State<WorldMapScreen> {
       TransformationController();
   String? selectedCountry;
   final Set<String> selectedCountries = {};
+  Color selectedColor = const Color.fromARGB(255, 33, 47, 243);
+  final Map<String, Color> countryColors = {};
 
   @override
   void initState() {
@@ -28,8 +34,8 @@ class _WorldMapScreenState extends State<WorldMapScreen> {
     });
 
     _transformationController.value = Matrix4.identity()
-      ..scale(0.8)
-      ..translate(-100.0, -50.0);
+      ..scale(1.2)
+      ..translate(-30.0, -50.0);
   }
 
   loadCountries() async {
@@ -50,20 +56,71 @@ class _WorldMapScreenState extends State<WorldMapScreen> {
     return countries;
   }
 
+  void _showColorPicker() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Ülke rengi seçin'),
+          content: SingleChildScrollView(
+            child: BlockPicker(
+              pickerColor: selectedColor,
+              onColorChanged: (Color color) {
+                setState(() {
+                  selectedColor = color;
+                });
+                Navigator.of(context).pop();
+              },
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF3E2723),
+      backgroundColor: const Color(0xFFB7B597),
       appBar: AppBar(
-          backgroundColor: const Color.fromARGB(255, 122, 108, 62),
-          title: const Text('Dünya Haritası')),
+        backgroundColor: const Color(0xFFB7B597),
+        title: const Text('Dünya Haritası'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => const SplashScreen()),
+            );
+          },
+        ),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.color_lens, color: selectedColor),
+            onPressed: _showColorPicker,
+          ),
+          IconButton(
+            icon: const Icon(Icons.book),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const NotebookPage(),
+                ),
+              );
+            },
+          ),
+        ],
+      ),
       body: Stack(
         children: [
           InteractiveViewer(
             transformationController: _transformationController,
-            maxScale: 10,
+            maxScale: 50,
             minScale: 0.1,
             boundaryMargin: const EdgeInsets.all(100),
+            panEnabled: true,
+            scaleEnabled: true,
             child: Center(
               child: FittedBox(
                 fit: BoxFit.contain,
@@ -112,7 +169,7 @@ class _WorldMapScreenState extends State<WorldMapScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      if (selectedCountry == "Türkiye")
+                      if (countryConfigs.containsKey(selectedCountry))
                         Padding(
                           padding: const EdgeInsets.only(right: 8.0),
                           child: ElevatedButton(
@@ -120,11 +177,13 @@ class _WorldMapScreenState extends State<WorldMapScreen> {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (context) => const TurkeyMapScreen(),
+                                  builder: (context) => countryConfigs[
+                                      selectedCountry]!["screen"](context),
                                 ),
                               );
                             },
-                            child: const Text('Türkiye\'ye Git'),
+                            child: Text(
+                                countryConfigs[selectedCountry]!["buttonText"]),
                           ),
                         ),
                       ElevatedButton(
@@ -133,8 +192,7 @@ class _WorldMapScreenState extends State<WorldMapScreen> {
                             context,
                             MaterialPageRoute(
                               builder: (context) => CountryDetailsScreen(
-                                countryName: selectedCountry!,
-                              ),
+                                  countryName: selectedCountry!),
                             ),
                           );
                         },
@@ -156,23 +214,24 @@ class _WorldMapScreenState extends State<WorldMapScreen> {
     return ClipPath(
       clipper: CountryClipper(svgPath: country.path),
       child: GestureDetector(
-        onTap: () {
+        onTapDown: (details) {
           setState(() {
+            selectedCountry = country.title;
             if (isSelected) {
               selectedCountries.remove(country.title);
+              countryColors.remove(country.title);
             } else {
               selectedCountries.add(country.title);
+              countryColors[country.title] = selectedColor;
             }
-            selectedCountry = country.title;
           });
-          print(country.title);
         },
         child: Container(
           width: double.infinity,
           height: double.infinity,
-          color: isSelected
-              ? const Color.fromARGB(255, 33, 47, 243)
-              : const Color.fromARGB(255, 110, 110, 110),
+          color: isSelected 
+              ? countryColors[country.title] ?? const Color(0xFF6B8A7A)
+              : const Color(0xFF6B8A7A),
         ),
       ),
     );
